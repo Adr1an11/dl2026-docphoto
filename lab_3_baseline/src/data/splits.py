@@ -52,13 +52,13 @@ def build_splits(df: pd.DataFrame, group_column: str = "group_strict", val_fract
     total_rows = len(df)
     target_val_rows = int(np.ceil(val_fraction * total_rows))
 
-    
+    #1
     distinct_values = np.sort(df[group_column].unique())
-
+    #2
     rng = np.random.default_rng(seed)
     rng.shuffle(distinct_values)
 
-
+    
     group_counts = df[group_column].value_counts()
 
     val_groups = []
