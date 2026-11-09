@@ -154,10 +154,42 @@ class SmallCNN(nn.Module):
                  dropout: float = 0.0, prior: float = 0.5, stem_stride: int = 2, stem_kernel: int = 5,
                  pool: str = "avg"):
         super().__init__()
-        raise NotImplementedError("TASK 1: build the layers of SmallCNN")
+        
+        # 1. Build the features using nn.Sequential
+        layers: list[nn.Module] = [
+            conv_block(in_ch, widths[0], stride=stem_stride, kernel=stem_kernel, norm=norm)
+        ]
+        
+        # Iterate over consecutive pairs in `widths` to create the remaining blocks
+        for c_in, c_out in zip(widths[:-1], widths[1:]):
+            layers.append(conv_block(c_in, c_out, norm=norm))
+            layers.append(nn.MaxPool2d(2))
+            
+        self.features = nn.Sequential(*layers)
+        
+        # 2. Global Pooling
+        self.pool = GlobalPool(pool)
+        
+        # 3. Dropout
+        self.drop = nn.Dropout(dropout)
+        
+        # 4. Linear Head
+        self.head = nn.Linear(widths[-1] * self.pool.factor, 1)
+        
+        # 5. Weight Initialization
+        init_weights(self)
+        prior_bias(self.head, prior)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TASK 1: the forward pass of SmallCNN")
+        x = self.features(x)
+        x = self.pool(x)
+        x = self.drop(x)
+        x = self.head(x)
+        return x.squeeze(1)
+        #raise NotImplementedError("TASK 1: build the layers of SmallCNN")
+
+    #def forward(self, x: torch.Tensor) -> torch.Tensor:
+     #   raise NotImplementedError("TASK 1: the forward pass of SmallCNN")
 
 
 class ResBlock(nn.Module):
@@ -177,10 +209,38 @@ class ResBlock(nn.Module):
 
     def __init__(self, channels: int, norm: str = "batch"):
         super().__init__()
-        raise NotImplementedError("TASK ⭐: the layers of ResBlock")
+        
+        # First pre-norm block
+        self.norm1 = make_norm(norm, channels)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        
+        # Second pre-norm block
+        self.norm2 = make_norm(norm, channels)
+        self.relu2 = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(channels, channels, kernel_size=3, padding=1, bias=False)
+        
+        # Mark the last convolution so `init_weights` initializes it to all zeros.
+        # This means the block starts its life doing exactly nothing (out = x + 0),
+        # which makes training deep networks much easier to start.
+        self.conv2.zero_init = True
+        
+        #raise NotImplementedError("TASK ⭐: the layers of ResBlock")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TASK ⭐: the forward pass of ResBlock")
+
+        # Pass through the residual branch
+        out = self.norm1(x)
+        out = self.relu1(out)
+        out = self.conv1(out)
+        
+        out = self.norm2(out)
+        out = self.relu2(out)
+        out = self.conv2(out)
+        
+        # Add the original input (the identity path) back to the transformed output
+        return x + out
+        #raise NotImplementedError("TASK ⭐: the forward pass of ResBlock")
 
 
 class ResNetSmall(nn.Module):

@@ -57,7 +57,8 @@ def init_run(cfg: dict, tags: list[str] | None = None, name: str | None = None,
     except Exception as e:  # noqa: BLE001  (anything: no network, bad key, service down)
         print(f"wandb: could not start an online run ({type(e).__name__}: {e}); logging offline instead")
         kwargs.pop("anonymous", None)
-        kwargs["mode"] = "offline"
+        #kwargs["mode"] = "offline"
+        kwargs["mode"] = "disabled"
         return wandb.init(**kwargs)
 
 

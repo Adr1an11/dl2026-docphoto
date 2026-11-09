@@ -38,6 +38,22 @@ def param_groups(model: nn.Module, weight_decay: float) -> list[dict]:
     `requires_grad == False` (a frozen backbone in lab 5). Every trainable
     parameter in exactly one group.
     """
+    decay_params = []
+    no_decay_params = []
+    
+    for p in model.parameters():
+        if not p.requires_grad:
+            continue
+            
+        if p.ndim <= 1:
+            no_decay_params.append(p)
+        else:
+            decay_params.append(p)
+            
+    return [
+        {"params": decay_params, "weight_decay": weight_decay},
+        {"params": no_decay_params, "weight_decay": 0.0}
+    ]
     raise NotImplementedError("TASK 3: the two parameter groups")
 
 

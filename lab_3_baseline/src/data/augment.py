@@ -46,7 +46,31 @@ def augment_safe(x: torch.Tensor, generator: torch.Generator, max_shift: int = 8
       Not `torch.roll`: it would wrap the right edge of the page round to the
       left and invent a sharp edge that is not in the photograph.
     """
-    raise NotImplementedError("TASK 4: flip and shift")
+    b, c, h, w = x.shape
+
+    # 1. Random left-right mirror
+    mask = (torch.rand(b, generator=generator) < 0.5).to(x.device)
+    x = torch.where(mask.view(-1, 1, 1, 1), x.flip(-1), x)
+
+    # 2. Random shift
+    shifts = torch.randint(-max_shift, max_shift + 1, (b, 2), generator=generator)
+    
+    # Pad the whole batch (Left, Right, Top, Bottom)
+    x_padded = F.pad(x, (max_shift, max_shift, max_shift, max_shift), value=fill)
+
+    # Cut each image's H x W window back out at its own offset
+    out = []
+    for i in range(b):
+        dy, dx = shifts[i]
+        # Calculate the starting crop coordinates
+        y_start = max_shift + dy
+        x_start = max_shift + dx
+        
+        # Slice the HxW window and append
+        out.append(x_padded[i, :, y_start:y_start+h, x_start:x_start+w])
+        
+    return torch.stack(out)
+    #raise NotImplementedError("TASK 4: flip and shift")
 
 
 def augment_jitter(x: torch.Tensor, generator: torch.Generator, fill: float = 0.0) -> torch.Tensor:

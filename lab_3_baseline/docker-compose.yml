@@ -4,6 +4,9 @@
 # COMPOSE_FILE line in .env.
 
 x-common: &common
+#added the line
+  platform: linux/arm64
+  #added
   build:
     context: .
     args:
